@@ -3,9 +3,13 @@
 namespace App\Livewire\Forms;
 
 use Livewire\Component;
+use Livewire\Attributes\On;
 use App\Models\Form;
 use App\Models\FormField;
 use App\Models\FieldOption;
+use App\Models\AiFormGenerationJob;
+use App\Jobs\GenerateFormSchemaJob;
+use App\Services\FormSchemaService;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 
@@ -26,6 +30,7 @@ class FormBuilder extends Component
     public $selectedFieldType = null;
     public $fieldTypeConfigs = [];
     public $statusMessage = null;
+    public $aiGenerationJobId = null;
 
     protected $rules = [
         'form.title' => 'required|min:3|max:255',
@@ -501,6 +506,111 @@ class FormBuilder extends Component
         session()->flash('message', $published ? 'Form published successfully.' : 'Form saved as draft.');
         $this->statusMessage = $published ? 'Form published successfully.' : 'Form saved as draft.';
         $this->dispatch('statusUpdated');
+    }
+
+    #[On('aiGenerate')]
+    public function startAiGeneration(string $prompt)
+    {
+        if (! auth()->user()->can('create forms') && ! auth()->user()->can('edit forms')) {
+            abort(403, 'You do not have permission to use AI generation.');
+        }
+
+        $mode = ! empty($this->form['id']) ? 'edit' : 'create';
+
+        $job = AiFormGenerationJob::create([
+            'user_id' => auth()->id(),
+            'form_id' => $this->form['id'] ?? null,
+            'mode' => $mode,
+            'prompt' => $prompt,
+            'status' => AiFormGenerationJob::STATUS_QUEUED,
+            'input_schema' => $mode === 'edit' ? $this->generateSchema() : null,
+        ]);
+
+        $this->aiGenerationJobId = $job->id;
+
+        GenerateFormSchemaJob::dispatch($job->id);
+
+        $this->dispatch('aiGenerationStarted', id: $job->id);
+    }
+
+    #[On('aiSchemaReady')]
+    public function applyAiSchema($schema)
+    {
+        if (is_string($schema)) {
+            $schema = json_decode($schema, true);
+        }
+
+        if (! is_array($schema)) {
+            $this->addError('ai', 'The AI schema could not be read. Please try again.');
+            return;
+        }
+
+        // Never load a broken schema into the builder.
+        $schema = app(FormSchemaService::class)->validateAndRepair(
+            $schema,
+            ! empty($this->form['id']) ? 'edit' : 'create'
+        );
+
+        $this->form['title'] = $schema['title'];
+        $this->form['description'] = $schema['description'];
+        $this->form['settings'] = array_merge($this->form['settings'] ?? [], $schema['settings']);
+
+        $existing = collect($this->fields)->keyBy('field_key');
+        $newFields = [];
+        $order = 0;
+
+        foreach ($schema['fields'] as $field) {
+            $key = $field['field_key'];
+
+            if ($existing->has($key)) {
+                // Keep the DB row identity so Save updates in place.
+                $merged = array_merge($existing[$key], $this->aiFieldToBuilder($field));
+
+                if (empty($merged['options']) && ! empty($existing[$key]['options'] ?? [])) {
+                    $merged['options'] = $existing[$key]['options'];
+                }
+                if (empty($merged['validation']) && ! empty($existing[$key]['validation'] ?? [])) {
+                    $merged['validation'] = $existing[$key]['validation'];
+                }
+
+                $merged['order'] = $order++;
+                $newFields[] = $merged;
+            } else {
+                $builder = $this->aiFieldToBuilder($field);
+                $builder['id'] = null;
+                $builder['order'] = $order++;
+                $newFields[] = $builder;
+            }
+        }
+
+        $this->fields = $newFields;
+        $this->loadSections();
+
+        $this->statusMessage = 'AI schema applied. Review the fields, then save the form.';
+    }
+
+    protected function aiFieldToBuilder(array $field)
+    {
+        return [
+            'field_key' => $field['field_key'],
+            'label' => $field['label'],
+            'type' => $field['type'],
+            'placeholder' => $field['placeholder'] ?? '',
+            'help_text' => $field['help_text'] ?? '',
+            'default_value' => $field['default_value'] ?? '',
+            'validation' => $field['validation'] ?? [],
+            'settings' => $field['settings'] ?? [],
+            'is_required' => $field['is_required'] ?? false,
+            'is_visible' => $field['is_visible'] ?? true,
+            'options' => array_values(array_map(function ($option) {
+                return [
+                    'label' => $option['label'],
+                    'value' => $option['value'],
+                    'order' => $option['order'] ?? 0,
+                    'is_default' => $option['is_default'] ?? false,
+                ];
+            }, $field['options'] ?? [])),
+        ];
     }
 
     public function render()

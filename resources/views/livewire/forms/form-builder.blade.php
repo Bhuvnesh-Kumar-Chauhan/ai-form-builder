@@ -72,6 +72,11 @@
                                 <i class="fas fa-list"></i> Fields Library
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" :class="{ active: activeTab === 'ai' }" href="#" @click.prevent="activeTab = 'ai'">
+                                <i class="fas fa-wand-magic-sparkles"></i> AI
+                            </a>
+                        </li>
                     </ul>
 
                     <!-- Builder Tab -->
@@ -328,6 +333,13 @@
                                 </div>
                             @endforeach
                         </div>
+                    </div>
+
+                    <!-- AI Assistant Tab -->
+                    <div x-show="activeTab === 'ai'">
+                        <livewire:forms.ai-form-generator
+                            :mode="!empty($form['id']) ? 'edit' : 'create'"
+                        />
                     </div>
                 </div>
             </div>
