@@ -8,6 +8,9 @@
                 <a href="{{ route('forms.create') }}" class="btn btn-primary btn-sm">
                     <i class="fas fa-plus"></i> Create New Form
                 </a>
+                <a href="{{ route('forms.import') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-file-import"></i> Import
+                </a>
             </div>
         </div>
         <div class="card-body">
@@ -90,6 +93,9 @@
                                         <a href="{{ route('forms.submissions', $form->slug) }}" class="btn btn-outline-info">
                                             <i class="fas fa-list"></i>
                                         </a>
+                                        <button wire:click="duplicateForm({{ $form->id }})" class="btn btn-outline-warning" title="Duplicate">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
                                         <button wire:click="deleteForm({{ $form->id }})" class="btn btn-outline-danger" onclick="return confirm('Delete this form?')">
                                             <i class="fas fa-trash"></i>
                                         </button>

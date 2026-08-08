@@ -84,6 +84,43 @@ class FormList extends Component
         }
     }
 
+    public function duplicateForm($formId)
+    {
+        if (! Auth::user()->canCreateForms()) {
+            abort(403, 'You do not have permission to duplicate forms.');
+        }
+
+        $form = Form::findOrFail($formId);
+
+        if ($form->user_id !== Auth::id() && ! Auth::user()->isSuperAdmin()) {
+            abort(403, 'You do not own this form.');
+        }
+
+        $newForm = $form->replicate();
+        $newForm->title = $form->title . ' (Copy)';
+        $newForm->slug = $form->slug . '-copy-' . time();
+        $newForm->is_published = false;
+        $newForm->submission_count = 0;
+        $newForm->user_id = Auth::id();
+        $newForm->save();
+
+        foreach ($form->fields as $field) {
+            $newField = $field->replicate();
+            $newField->form_id = $newForm->id;
+            $newField->save();
+
+            foreach ($field->options as $option) {
+                $newOption = $option->replicate();
+                $newOption->form_field_id = $newField->id;
+                $newOption->save();
+            }
+        }
+
+        session()->flash('message', 'Form duplicated successfully.');
+
+        return redirect()->route('forms.edit', $newForm);
+    }
+
     public function render()
     {
         $forms = $this->getForms();

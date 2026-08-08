@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\NewSubmissionNotification;
 use App\Models\Form;
 use App\Models\FormSubmission;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -116,13 +118,36 @@ class FormController extends Controller
         ]);
         
         $form->increment('submission_count');
-        
+
+        $this->notifyOwner($form, $submission);
+
         return response()->json([
             'success' => true,
             'message' => $form->settings['success_message'] ?? 'Form submitted successfully!',
             'redirect_url' => $form->settings['redirect_url'] ?? null,
             'submission_id' => $submission->id,
         ]);
+    }
+
+    protected function notifyOwner(Form $form, FormSubmission $submission): void
+    {
+        $settings = $form->settings ?? [];
+
+        if (empty($settings['email_notifications_enabled'])) {
+            return;
+        }
+
+        $to = trim((string) ($settings['notification_email'] ?? ''));
+
+        if ($to === '') {
+            $to = $form->user?->email;
+        }
+
+        if ($to === null || $to === '') {
+            return;
+        }
+
+        Mail::to($to)->queue(new NewSubmissionNotification($form, $submission));
     }
 
     public function exportSubmissions(Form $form)

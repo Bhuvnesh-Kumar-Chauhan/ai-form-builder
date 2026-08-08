@@ -52,4 +52,21 @@ return [
 
     'json_mode' => (bool) env('AI_JSON_MODE', true),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Document import (Part C)
+    |--------------------------------------------------------------------------
+    |
+    | 'import_queue_threshold' - files larger than this (bytes) are parsed by a
+    |   queued background job (status shown via polling); smaller files are
+    |   parsed inline so the preview appears immediately.
+    |
+    | 'import_max_size' - maximum accepted upload size in bytes.
+    |
+    */
+
+    'import_queue_threshold' => (int) env('AI_IMPORT_QUEUE_THRESHOLD', 512 * 1024),
+
+    'import_max_size' => (int) env('AI_IMPORT_MAX_SIZE', 20 * 1024 * 1024),
+
 ];

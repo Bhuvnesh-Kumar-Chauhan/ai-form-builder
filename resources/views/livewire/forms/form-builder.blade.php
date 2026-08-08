@@ -278,6 +278,14 @@
                                             <input type="checkbox" wire:model="form.settings.recaptcha_enabled" class="form-check-input">
                                             <label class="form-check-label">Enable reCAPTCHA</label>
                                         </div>
+                                        <div class="form-check mb-2">
+                                            <input type="checkbox" wire:model="form.settings.email_notifications_enabled" class="form-check-input">
+                                            <label class="form-check-label">Email me on each new submission</label>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Notification email <small class="text-muted">(blank = form owner)</small></label>
+                                            <input type="email" wire:model="form.settings.notification_email" class="form-control" placeholder="you@example.com">
+                                        </div>
                                         <div class="mb-3">
                                             <label class="form-label">Expiration Date</label>
                                             <input type="datetime-local" wire:model="form.expires_at" class="form-control">
@@ -340,6 +348,13 @@
                         <livewire:forms.ai-form-generator
                             :mode="!empty($form['id']) ? 'edit' : 'create'"
                         />
+
+                        @if(!empty($form['id']))
+                            <livewire:forms.form-audit
+                                :form-id="$form['id']"
+                                :schema="json_encode($this->generateSchema())"
+                            />
+                        @endif
                     </div>
                 </div>
             </div>

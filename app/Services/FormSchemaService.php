@@ -393,6 +393,15 @@ class FormSchemaService
         return $fields;
     }
 
+    /**
+     * Public wrapper around coerceType so other services (import, audit)
+     * can canonicalize user/model-supplied type names safely.
+     */
+    public function canonicalType(mixed $type): string
+    {
+        return $this->coerceType($type);
+    }
+
     protected function coerceType(mixed $type): string
     {
         if (! is_string($type)) {

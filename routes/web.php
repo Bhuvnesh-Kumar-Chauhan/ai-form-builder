@@ -35,6 +35,7 @@ Route::middleware(['auth'])->group(function () {
     
     Route::middleware(['permission:create forms'])->group(function () {
         Route::get('/forms/create', FormBuilder::class)->name('forms.create');
+        Route::get('/forms/import', \App\Livewire\Forms\FormImporter::class)->name('forms.import');
     });
     
     Route::middleware(['permission:edit forms'])->group(function () {

@@ -30,8 +30,11 @@ class FormSubmissions extends Component
 
     public function mount(Form $form)
     {
-        // Check if user owns this form
-        if ($form->user_id !== Auth::id()) {
+        $user = Auth::user();
+
+        // Super admins can view any form's submissions.
+        // Other users can only view submissions of their own forms.
+        if (! $user->isSuperAdmin() && $form->user_id !== $user->id) {
             abort(403, 'Unauthorized action.');
         }
         

@@ -65,6 +65,8 @@ class FormBuilder extends Component
                 'submit_button_text' => 'Submit',
                 'success_message' => 'Form submitted successfully!',
                 'redirect_url' => null,
+                'email_notifications_enabled' => false,
+                'notification_email' => '',
             ],
             'is_published' => $form->is_published ?? false,
             'is_multi_step' => $form->is_multi_step ?? false,
@@ -553,7 +555,13 @@ class FormBuilder extends Component
 
         $this->form['title'] = $schema['title'];
         $this->form['description'] = $schema['description'];
-        $this->form['settings'] = array_merge($this->form['settings'] ?? [], $schema['settings']);
+
+        // Apply the AI's standard settings but never clobber extra keys the
+        // user configured (e.g. email notification toggles).
+        $this->form['settings'] = array_merge(
+            $this->form['settings'] ?? [],
+            array_intersect_key($schema['settings'], FormSchemaService::SETTINGS_DEFAULTS)
+        );
 
         $existing = collect($this->fields)->keyBy('field_key');
         $newFields = [];

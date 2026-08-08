@@ -14,6 +14,8 @@
  *   - "hindi"      -> returns Devanagari labels (tests "translate labels to Hindi")
  *   - "emergency"  -> adds an emergency contact section (tests edit mode)
  *   - "phone required" -> sets the phone field required (tests edit mode)
+ *   - "refine"     -> hybrid import refinement (type/required/validation only)
+ *   - "audit"      -> form audit report + corrected schema
  */
 
 import http from 'node:http';
@@ -45,7 +47,6 @@ const server = http.createServer((req, res) => {
 
     const messages = Array.isArray(payload.messages) ? payload.messages : [];
     const prompt = (messages.map((m) => m.content || '').join('\n')).toLowerCase();
-    const lastUser = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
 
     // Retry test: return broken JSON on the first pass when asked for garbage.
     if (/garbage/.test(prompt) && !/was rejected/.test(prompt)) {
@@ -60,7 +61,14 @@ const server = http.createServer((req, res) => {
       return;
     }
 
-    const content = buildFormSchema(lastUser);
+    let content;
+    if (/audit/.test(prompt)) {
+      content = buildAudit(payload);
+    } else if (/refine|parsed fields/.test(prompt)) {
+      content = buildRefinement(payload);
+    } else {
+      content = buildFormSchema(prompt);
+    }
 
     const promptTokens = Math.round(prompt.length / 4) + 100;
     const completionTokens = Math.round(content.length / 4) + 20;
@@ -156,9 +164,7 @@ function internshipSchema({ requiredPhone = false, translated = false } = {}) {
   };
 }
 
-function buildFormSchema(lastUser) {
-  const prompt = lastUser.toLowerCase();
-
+function buildFormSchema(prompt) {
   if (/bogus types/.test(prompt)) {
     return JSON.stringify({
       title: 'Hallucination Test Form',
@@ -231,6 +237,86 @@ function buildFormSchema(lastUser) {
   }
 
   return JSON.stringify(schema);
+}
+
+function extractJsonObject(text) {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) return null;
+  try {
+    return JSON.parse(text.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+}
+
+// Hybrid import refinement: reply with type/required/validation for each
+// field_key present in the request, guessed from its label and options.
+function buildRefinement(payload) {
+  const content = (payload.messages.map((m) => m.content || '').join('\n'));
+  const outer = extractJsonObject(content);
+  const list = outer && Array.isArray(outer.fields) ? outer.fields : [];
+
+  const fields = list.map((f) => {
+    const label = (f.label || '').toLowerCase();
+    const options = Array.isArray(f.options) ? f.options : [];
+    let type = 'text';
+    let isRequired = false;
+    let validation = { min: 1, max: 255 };
+
+    if (/email/.test(label)) { type = 'email'; isRequired = true; validation = { email: true }; }
+    else if (/phone|mobile|contact number|telephone/.test(label)) { type = 'phone'; validation = { regex: '/^[0-9+\\-\\s()]+$/' }; }
+    else if (/date|birthday|dob|when/.test(label)) { type = 'date'; validation = { date: true }; }
+    else if (/upload|resume|cv|file|photo|image|document/.test(label)) { type = 'file'; validation = { file: true, max: 2048 }; }
+    else if (/rating|satisfaction|how satisfied/.test(label)) { type = 'rating'; validation = { numeric: true, min: 1, max: 5 }; }
+    else if (/comment|feedback|message|describe|details|notes|opinion|tell us/.test(label)) { type = 'textarea'; validation = { min: 1, max: 1000 }; }
+    else if (/how many|age|number of|years of/.test(label)) { type = 'number'; validation = { numeric: true, min: 0 }; }
+    else if (/password/.test(label)) { type = 'password'; isRequired = true; validation = { min: 8 }; }
+    else if (options.length > 0) {
+      const isCheckbox = /which of|select all|check|agree/.test(label);
+      type = options.length > 6 && !isCheckbox ? 'select' : (isCheckbox ? 'checkbox' : 'radio');
+      isRequired = true;
+      const values = options.map((o) => String(o.label ?? o).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''));
+      validation = { in: values.join(',') };
+    }
+
+    return { field_key: f.field_key, type, is_required: isRequired, validation };
+  });
+
+  return JSON.stringify({ fields });
+}
+
+// Form audit: echo the submitted schema back (for "apply fixes") plus a report.
+function buildAudit(payload) {
+  const content = (payload.messages.map((m) => m.content || '').join('\n'));
+  const outer = extractJsonObject(content);
+  const schema = outer && outer.title && Array.isArray(outer.fields) ? outer : null;
+
+  const fieldCount = schema ? schema.fields.length : 0;
+  const issues = [];
+  if (schema) {
+    for (const f of schema.fields) {
+      const label = (f.label || '').toLowerCase();
+      if (f.type === 'email' && !f.is_required) {
+        issues.push({ severity: 'high', title: `"${f.label}" is not required`, detail: 'Contact fields almost always need to be required. Mark this field required.' });
+      }
+      if (f.type !== 'section' && f.type !== 'heading' && (!f.placeholder || f.placeholder === '')) {
+        issues.push({ severity: 'medium', title: `"${f.label}" has no placeholder`, detail: 'Adding an example placeholder reduces confusion and improves fill rates.' });
+      }
+    }
+    if (issues.length === 0) {
+      issues.push({ severity: 'low', title: 'Consider a redirect URL', detail: 'Set a redirect_url to send respondents to a thank-you page after submitting.' });
+    }
+  }
+
+  return JSON.stringify({
+    audit: {
+      score: schema ? Math.max(55, 100 - issues.length * 8) : 0,
+      summary: 'Reviewed the form for completeness, validation and UX. Apply the fixes below to improve it.',
+      issues: issues.slice(0, 6),
+    },
+    schema: schema || { title: 'Untitled', description: '', settings: {}, fields: [] },
+  });
 }
 
 server.listen(PORT, () => {

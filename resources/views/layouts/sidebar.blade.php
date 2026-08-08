@@ -42,6 +42,12 @@
                             <span>Create Form</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="{{ route('forms.import') }}" class="nav-link {{ request()->routeIs('forms.import') ? 'active' : '' }}">
+                            <i class="fas fa-file-import"></i>
+                            <span>Import Form</span>
+                        </a>
+                    </li>
                 @else
                     <li class="nav-item">
                         <span class="nav-link sidebar-locked" title="Requires 'create forms' permission">
