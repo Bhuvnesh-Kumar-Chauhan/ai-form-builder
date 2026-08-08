@@ -2,48 +2,90 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
+use App\Traits\HasPermissions;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles, HasPermissions {
+        HasPermissions::hasAnyRole insteadof HasRoles;
+        HasPermissions::hasAllRoles insteadof HasRoles;
+    }
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function forms()
+    {
+        return $this->hasMany(Form::class);
+    }
+
+    // Helper method to check if user can perform an action on a form
+    public function canManageForm(Form $form)
+    {
+        // Super admin can manage any form
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+        
+        // User can manage their own forms if they have permission
+        if ($this->id === $form->user_id && $this->canEditForms()) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    // Helper method to check if user can view a form's submissions
+    public function canViewFormSubmissions(Form $form)
+    {
+        // Super admin can view any submissions
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+        
+        // User can view their own form submissions if they have permission
+        if ($this->id === $form->user_id && $this->canViewSubmissions()) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    // Get count of forms owned by user
+    public function getFormsCount()
+    {
+        return $this->forms()->count();
+    }
+
+    // Get count of submissions across all forms
+    public function getTotalSubmissionsCount()
+    {
+        return $this->forms()->sum('submission_count');
+    }
+
+    // Get published forms count
+    public function getPublishedFormsCount()
+    {
+        return $this->forms()->where('is_published', true)->count();
     }
 }
