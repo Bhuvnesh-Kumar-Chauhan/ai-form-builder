@@ -14,17 +14,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  #############################################################################
+
+  ###########################################################################
   # CI — run tests and checks on every push / PR
-  #############################################################################
+  ###########################################################################
 
   tests:
     name: Tests (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
         php: ['8.2', '8.3']
+
     steps:
       - uses: actions/checkout@v4
 
@@ -51,12 +54,21 @@ jobs:
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      # Laravel tests need APP_KEY
+      - name: Generate Laravel application key
+        run: php artisan key:generate --force
+
       - name: Run test suite
         run: composer test
+
+  ###########################################################################
+  # Code style
+  ###########################################################################
 
   lint:
     name: Code style (Pint)
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -73,9 +85,14 @@ jobs:
       - name: Check code style
         run: ./vendor/bin/pint --test
 
+  ###########################################################################
+  # Build frontend assets
+  ###########################################################################
+
   build-assets:
     name: Build frontend assets
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -91,24 +108,41 @@ jobs:
       - name: Build assets
         run: npm run build
 
-  #############################################################################
+  ###########################################################################
   # CD — deploy to shared hosting over SFTP/SSH
-  #############################################################################
+  ###########################################################################
 
   deploy:
     name: Deploy to shared hosting
     runs-on: ubuntu-latest
-    needs: [tests, lint, build-assets]
+
+    needs:
+      - tests
+      - lint
+      - build-assets
+
+    # Deploy only after a successful push to main
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
     environment: production
+
     steps:
       - uses: actions/checkout@v4
+
+      #######################################################################
+      # PHP
+      #######################################################################
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           extensions: mbstring, dom, zip, sqlite3, bcmath, intl, gd, fileinfo, pcntl, posix
+          tools: composer
+
+      #######################################################################
+      # Node
+      #######################################################################
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -116,13 +150,25 @@ jobs:
           node-version: 22
           cache: npm
 
+      #######################################################################
+      # Install production PHP dependencies
+      #######################################################################
+
       - name: Install PHP dependencies (no dev)
-        run: composer install --no-interaction --prefer-dist --no-dev --no-progress
+        run: composer install --no-interaction --prefer-dist --no-dev --no-progress --optimize-autoloader
+
+      #######################################################################
+      # Build frontend assets
+      #######################################################################
 
       - name: Install npm dependencies and build assets
         run: |
           npm ci
           npm run build
+
+      #######################################################################
+      # Prepare deployment package
+      #######################################################################
 
       - name: Prepare deployment package
         run: |
@@ -139,26 +185,41 @@ jobs:
           .env.*
           database/database.sqlite
           database/*.sqlite
+          database/*.sqlite3
           storage/logs/*
           storage/framework/cache/data/*
           storage/framework/sessions/*
           storage/framework/views/*
           public/hot
           EOF
+
           mkdir -p staging
-          rsync -a --exclude-from=.rsync-exclude ./ staging/
+
+          rsync -a \
+            --exclude-from=.rsync-exclude \
+            ./ staging/
+
           rm .rsync-exclude
 
-      - name: Show maintenance mode (site briefly unavailable)
+      #######################################################################
+      # Put website into maintenance mode
+      #######################################################################
+
+      - name: Show maintenance mode
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          # key: ${{ secrets.SERVER_SSH_KEY }}   # alternative to password auth
+          # key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
           script: |
-            cd ${{ secrets.SERVER_PATH }} && php artisan down --retry=60
+            cd ${{ secrets.SERVER_PATH }}
+            php artisan down --retry=60 || true
+
+      #######################################################################
+      # Upload files
+      #######################################################################
 
       - name: Upload files over SFTP
         uses: appleboy/scp-action@v0.1.7
@@ -166,24 +227,30 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          # key: ${{ secrets.SERVER_SSH_KEY }}   # alternative to password auth
+          # key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
           source: staging/
           strip_components: 1
           target: ${{ secrets.SERVER_PATH }}
 
-      - name: Run migrations and cache config, bring site back up
+      #######################################################################
+      # Run Laravel deployment commands
+      #######################################################################
+
+      - name: Run migrations, cache config, and bring site back up
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          # key: ${{ secrets.SERVER_SSH_KEY }}   # alternative to password auth
+          # key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
           script: |
-            cd ${{ secrets.SERVER_PATH }}; \
-            php artisan migrate --force; \
-            php artisan config:cache; \
-            php artisan route:cache; \
-            php artisan view:cache; \
+            cd ${{ secrets.SERVER_PATH }}
+
+            php artisan migrate --force
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
             php artisan up
