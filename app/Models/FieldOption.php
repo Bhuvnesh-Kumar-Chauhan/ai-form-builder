@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class FieldOption extends Model
 {
     use HasFactory;
+
     protected $table = 'field_options';
+
     protected $fillable = [
         'form_field_id',
         'label',

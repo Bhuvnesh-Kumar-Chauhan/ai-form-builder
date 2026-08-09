@@ -20,9 +20,7 @@ class GenerateFormSchemaJob implements ShouldQueue
 
     public int $tries = 1;
 
-    public function __construct(public int $generationId)
-    {
-    }
+    public function __construct(public int $generationId) {}
 
     public function handle(LlmClient $client, FormSchemaService $schemaService): void
     {

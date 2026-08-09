@@ -2,23 +2,29 @@
 
 namespace App\Livewire\Forms;
 
-use Livewire\Component;
-use Livewire\WithPagination;
 use App\Models\Form;
 use App\Models\FormSubmission;
-use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Response;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class FormSubmissions extends Component
 {
     use WithPagination;
 
     public Form $form;
+
     public $search = '';
+
     public $perPage = 10;
+
     public $sortField = 'submitted_at';
+
     public $sortDirection = 'desc';
+
     public $selectedSubmissions = [];
+
     public $selectAll = false;
 
     protected $queryString = [
@@ -37,7 +43,7 @@ class FormSubmissions extends Component
         if (! $user->isSuperAdmin() && $form->user_id !== $user->id) {
             abort(403, 'Unauthorized action.');
         }
-        
+
         $this->form = $form;
     }
 
@@ -51,7 +57,7 @@ class FormSubmissions extends Component
         if ($value) {
             $this->selectedSubmissions = $this->getSubmissions()
                 ->pluck('id')
-                ->map(fn($id) => (string) $id)
+                ->map(fn ($id) => (string) $id)
                 ->toArray();
         } else {
             $this->selectedSubmissions = [];
@@ -74,9 +80,9 @@ class FormSubmissions extends Component
         return FormSubmission::where('form_id', $this->form->id)
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
-                    $q->where('data', 'LIKE', '%' . $this->search . '%')
-                      ->orWhere('ip_address', 'LIKE', '%' . $this->search . '%')
-                      ->orWhere('submission_uuid', 'LIKE', '%' . $this->search . '%');
+                    $q->where('data', 'LIKE', '%'.$this->search.'%')
+                        ->orWhere('ip_address', 'LIKE', '%'.$this->search.'%')
+                        ->orWhere('submission_uuid', 'LIKE', '%'.$this->search.'%');
                 });
             })
             ->orderBy($this->sortField, $this->sortDirection);
@@ -94,7 +100,7 @@ class FormSubmissions extends Component
 
     public function deleteSelected()
     {
-        if (!empty($this->selectedSubmissions)) {
+        if (! empty($this->selectedSubmissions)) {
             FormSubmission::whereIn('id', $this->selectedSubmissions)
                 ->where('form_id', $this->form->id)
                 ->delete();
@@ -108,9 +114,10 @@ class FormSubmissions extends Component
     public function exportCSV()
     {
         $submissions = $this->getSubmissions()->get();
-        
+
         if ($submissions->isEmpty()) {
             session()->flash('error', 'No submissions to export.');
+
             return;
         }
 
@@ -124,7 +131,7 @@ class FormSubmissions extends Component
                 $submission->submitted_at->format('Y-m-d H:i:s'),
                 $submission->ip_address,
             ];
-            
+
             foreach ($fieldKeys as $key) {
                 $value = $submission->data[$key] ?? '';
                 if (is_array($value)) {
@@ -132,33 +139,33 @@ class FormSubmissions extends Component
                 }
                 $row[] = $value;
             }
-            
+
             return $row;
         });
 
-        $callback = function() use ($headers, $rows) {
+        $callback = function () use ($headers, $rows) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, $headers);
-            
+
             foreach ($rows as $row) {
                 fputcsv($handle, $row);
             }
-            
+
             fclose($handle);
         };
 
-        $filename = 'submissions_' . $this->form->slug . '_' . now()->format('Y-m-d') . '.csv';
-        
+        $filename = 'submissions_'.$this->form->slug.'_'.now()->format('Y-m-d').'.csv';
+
         return Response::stream($callback, 200, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
     public function render()
     {
         $submissions = $this->getSubmissions()->paginate($this->perPage);
-        
+
         return view('livewire.forms.form-submissions', [
             'submissions' => $submissions,
         ])->layout('layouts.app');

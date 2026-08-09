@@ -34,8 +34,11 @@ class FormImportJob extends Model
     ];
 
     public const STATUS_QUEUED = 'queued';
+
     public const STATUS_PROCESSING = 'processing';
+
     public const STATUS_SUCCEEDED = 'succeeded';
+
     public const STATUS_FAILED = 'failed';
 
     public function user()

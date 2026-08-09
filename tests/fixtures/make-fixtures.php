@@ -11,18 +11,18 @@
  * Usage: php tests/fixtures/make-fixtures.php
  */
 
-require __DIR__ . '/../../vendor/autoload.php';
+require __DIR__.'/../../vendor/autoload.php';
 
-use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx as XlsxWriter;
 use PhpOffice\PhpWord\IOFactory as WordIOFactory;
+use PhpOffice\PhpWord\PhpWord;
 
 $dir = __DIR__;
 
 /* ---------------- DOCX ---------------- */
 
-$phpWord = new PhpWord();
+$phpWord = new PhpWord;
 $phpWord->addNumberingStyle('bulletList', [
     'type' => 'singleLevel',
     'levels' => [['format' => 'bullet', 'text' => '•', 'alignment' => 'left', 'left' => 360, 'hanging' => 360, 'tabPos' => 360, 'font' => 'Symbol']],
@@ -63,12 +63,12 @@ $row->addCell()->addText('☐ Vegan');
 $row->addCell()->addText('☐ None');
 
 $wordWriter = WordIOFactory::createWriter($phpWord, 'Word2007');
-$wordWriter->save($dir . '/registration-form.docx');
+$wordWriter->save($dir.'/registration-form.docx');
 echo "wrote registration-form.docx\n";
 
 /* ---------------- XLSX template layout ---------------- */
 
-$spreadsheet = new Spreadsheet();
+$spreadsheet = new Spreadsheet;
 $sheet = $spreadsheet->getActiveSheet();
 $sheet->fromArray([
     ['type', 'label', 'required', 'options', 'placeholder', 'help_text', 'section'],
@@ -81,12 +81,12 @@ $sheet->fromArray([
     ['file', 'Resume Upload', 'no', '', '', 'PDF or DOCX, max 2MB', ''],
 ], null, 'A1');
 
-(new XlsxWriter($spreadsheet))->save($dir . '/feedback-template.xlsx');
+(new XlsxWriter($spreadsheet))->save($dir.'/feedback-template.xlsx');
 echo "wrote feedback-template.xlsx\n";
 
 /* ---------------- XLSX data layout ---------------- */
 
-$spreadsheet = new Spreadsheet();
+$spreadsheet = new Spreadsheet;
 $sheet = $spreadsheet->getActiveSheet();
 $sheet->fromArray([
     ['Full Name', 'Email Address', 'Phone Number', 'How did you hear about us?', 'Date of Birth', 'Comments', 'Overall Rating'],
@@ -99,5 +99,5 @@ $sheet->fromArray([
     ['Leo Ray', 'leo@example.com', '555-4444', 'Friend', '1991-09-09', 'Nice', '5'],
 ], null, 'A1');
 
-(new XlsxWriter($spreadsheet))->save($dir . '/survey-data.xlsx');
+(new XlsxWriter($spreadsheet))->save($dir.'/survey-data.xlsx');
 echo "wrote survey-data.xlsx\n";

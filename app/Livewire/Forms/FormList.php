@@ -2,19 +2,23 @@
 
 namespace App\Livewire\Forms;
 
-use Livewire\Component;
-use Livewire\WithPagination;
 use App\Models\Form;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class FormList extends Component
 {
     use WithPagination;
 
     public $search = '';
+
     public $filter = 'all'; // all, published, draft
+
     public $perPage = 10;
+
     public $sortField = 'created_at';
+
     public $sortDirection = 'desc';
 
     protected $queryString = [
@@ -55,9 +59,9 @@ class FormList extends Component
         // Search
         if ($this->search) {
             $query->where(function ($q) {
-                $q->where('title', 'LIKE', '%' . $this->search . '%')
-                  ->orWhere('description', 'LIKE', '%' . $this->search . '%')
-                  ->orWhere('slug', 'LIKE', '%' . $this->search . '%');
+                $q->where('title', 'LIKE', '%'.$this->search.'%')
+                    ->orWhere('description', 'LIKE', '%'.$this->search.'%')
+                    ->orWhere('slug', 'LIKE', '%'.$this->search.'%');
             });
         }
 
@@ -97,8 +101,8 @@ class FormList extends Component
         }
 
         $newForm = $form->replicate();
-        $newForm->title = $form->title . ' (Copy)';
-        $newForm->slug = $form->slug . '-copy-' . time();
+        $newForm->title = $form->title.' (Copy)';
+        $newForm->slug = $form->slug.'-copy-'.time();
         $newForm->is_published = false;
         $newForm->submission_count = 0;
         $newForm->user_id = Auth::id();
@@ -124,7 +128,7 @@ class FormList extends Component
     public function render()
     {
         $forms = $this->getForms();
-        
+
         return view('livewire.forms.form-list', [
             'forms' => $forms,
         ])->layout('layouts.app');

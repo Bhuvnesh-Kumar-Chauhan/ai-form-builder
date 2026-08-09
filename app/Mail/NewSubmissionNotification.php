@@ -18,13 +18,12 @@ class NewSubmissionNotification extends Mailable implements ShouldQueue
     public function __construct(
         public Form $form,
         public FormSubmission $submission,
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'New submission: ' . $this->form->title,
+            subject: 'New submission: '.$this->form->title,
         );
     }
 

@@ -99,6 +99,7 @@ class FormSchemaService
 
             if ($decoded === null) {
                 $lastError = 'The response was not valid JSON. Return a single JSON object only.';
+
                 continue;
             }
 
@@ -106,6 +107,7 @@ class FormSchemaService
                 $schema = $this->validateAndRepair($decoded, $mode);
             } catch (InvalidSchemaException $e) {
                 $lastError = $e->getMessage();
+
                 continue;
             }
 
@@ -120,7 +122,7 @@ class FormSchemaService
         }
 
         throw new InvalidSchemaException(
-            'Could not produce a valid form schema after ' . $maxAttempts . ' attempt(s). ' . ($lastError ?? '')
+            'Could not produce a valid form schema after '.$maxAttempts.' attempt(s). '.($lastError ?? '')
         );
     }
 
@@ -145,7 +147,7 @@ class FormSchemaService
             $messages[] = [
                 'role' => 'user',
                 'content' => "This is the CURRENT form schema. Apply the requested change and return the COMPLETE updated schema, preserving every existing field (field_keys and options) unless the instruction requires otherwise:\n\n"
-                    . json_encode($currentSchema, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
+                    .json_encode($currentSchema, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
             ];
         }
 
@@ -165,7 +167,7 @@ class FormSchemaService
 
     public function systemPromptForCreate(): string
     {
-        return $this->sharedContract() . <<<'PROMPT'
+        return $this->sharedContract().<<<'PROMPT'
 
         The user wants a brand-new form. Generate a complete, production-ready form from their requirements.
 
@@ -179,7 +181,7 @@ class FormSchemaService
 
     public function systemPromptForEdit(): string
     {
-        return $this->sharedContract() . <<<'PROMPT'
+        return $this->sharedContract().<<<'PROMPT'
 
         The user wants to MODIFY an existing form. You will be given the current form schema.
 
@@ -364,7 +366,7 @@ class FormSchemaService
                 continue;
             }
 
-            $label = $this->stringValue($raw['label'] ?? null, 'Field ' . ($i + 1));
+            $label = $this->stringValue($raw['label'] ?? null, 'Field '.($i + 1));
             $label = Str::limit($label, 255);
 
             $type = $this->coerceType($raw['type'] ?? null);
@@ -438,7 +440,7 @@ class FormSchemaService
                     $optionValue = Str::slug($optionLabel, '_');
                 }
                 if ($optionValue === '') {
-                    $optionValue = 'option_' . Str::random(4);
+                    $optionValue = 'option_'.Str::random(4);
                 }
 
                 $key = Str::lower($optionValue);
@@ -532,7 +534,7 @@ class FormSchemaService
         $suffix = 1;
 
         while (in_array($key, $used, true)) {
-            $key = Str::lower($base) . '_' . $suffix++;
+            $key = Str::lower($base).'_'.$suffix++;
         }
 
         $used[] = $key;

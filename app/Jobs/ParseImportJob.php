@@ -17,9 +17,7 @@ class ParseImportJob implements ShouldQueue
 
     public int $tries = 1;
 
-    public function __construct(public int $importJobId)
-    {
-    }
+    public function __construct(public int $importJobId) {}
 
     public function handle(FormImportService $service): void
     {

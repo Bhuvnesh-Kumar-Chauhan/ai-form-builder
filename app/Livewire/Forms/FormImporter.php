@@ -61,7 +61,7 @@ class FormImporter extends Component
                 'required',
                 'file',
                 'mimes:docx,xlsx,xls',
-                'max:' . (int) (config('ai.import_max_size') / 1024),
+                'max:'.(int) (config('ai.import_max_size') / 1024),
             ],
         ]);
 
@@ -85,6 +85,7 @@ class FormImporter extends Component
 
             if ($job->file_size > config('ai.import_queue_threshold')) {
                 ParseImportJob::dispatch($job->id);
+
                 return;
             }
 
@@ -109,7 +110,7 @@ class FormImporter extends Component
                 $this->error = $e->getMessage();
             }
         } catch (\Throwable $e) {
-            $this->error = 'Could not read the uploaded file: ' . $e->getMessage();
+            $this->error = 'Could not read the uploaded file: '.$e->getMessage();
         }
     }
 
@@ -177,9 +178,9 @@ class FormImporter extends Component
             $this->refinedCount = $result['changed'];
             $this->refinedModel = $result['model'];
         } catch (LlmException $e) {
-            $this->error = 'AI refinement failed: ' . $e->getMessage();
+            $this->error = 'AI refinement failed: '.$e->getMessage();
         } catch (\Throwable $e) {
-            $this->error = 'AI refinement failed: ' . $e->getMessage();
+            $this->error = 'AI refinement failed: '.$e->getMessage();
         } finally {
             $this->refining = false;
         }
@@ -189,14 +190,14 @@ class FormImporter extends Component
     {
         $this->validate();
 
-        $model = new Form();
+        $model = new Form;
         $model->user_id = auth()->id();
         $model->title = $this->title;
         $model->description = $this->description;
         $model->settings = FormSchemaService::SETTINGS_DEFAULTS;
         $model->is_published = false;
         $model->is_multi_step = false;
-        $model->slug = Str::slug($this->title) . '-' . Str::random(6);
+        $model->slug = Str::slug($this->title).'-'.Str::random(6);
         $model->save();
 
         foreach ($this->fields as $index => $field) {

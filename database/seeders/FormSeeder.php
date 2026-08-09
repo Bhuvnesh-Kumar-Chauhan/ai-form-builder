@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use App\Models\FieldOption;
 use App\Models\Form;
 use App\Models\FormField;
-use App\Models\FieldOption;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class FormSeeder extends Seeder
@@ -18,7 +18,7 @@ class FormSeeder extends Seeder
 
         $user = User::where('email', 'admin@example.com')->first();
 
-        if (!$user) {
+        if (! $user) {
             $user = User::first();
         }
 
@@ -128,7 +128,7 @@ class FormSeeder extends Seeder
 
         foreach ($fields as $fieldData) {
             $field = FormField::create(array_merge($fieldData, ['form_id' => $form->id]));
-            
+
             if ($field->type === 'select') {
                 $options = [
                     ['label' => 'General Inquiry', 'value' => 'general', 'order' => 1],
@@ -267,7 +267,7 @@ class FormSeeder extends Seeder
 
         foreach ($fields as $fieldData) {
             $field = FormField::create(array_merge($fieldData, ['form_id' => $form->id]));
-            
+
             if ($field->type === 'select') {
                 $options = [
                     ['label' => 'United States', 'value' => 'us', 'order' => 1],
@@ -281,7 +281,7 @@ class FormSeeder extends Seeder
                     FieldOption::create(array_merge($optionData, ['form_field_id' => $field->id]));
                 }
             }
-            
+
             if ($field->type === 'checkbox') {
                 FieldOption::create([
                     'form_field_id' => $field->id,
@@ -374,7 +374,7 @@ class FormSeeder extends Seeder
 
         foreach ($fields as $fieldData) {
             $field = FormField::create(array_merge($fieldData, ['form_id' => $form->id]));
-            
+
             if ($field->type === 'select') {
                 $options = [
                     ['label' => 'Product A', 'value' => 'product-a', 'order' => 1],
@@ -386,7 +386,7 @@ class FormSeeder extends Seeder
                     FieldOption::create(array_merge($optionData, ['form_field_id' => $field->id]));
                 }
             }
-            
+
             if ($field->type === 'radio') {
                 $options = [
                     ['label' => 'Yes, definitely', 'value' => 'yes', 'order' => 1],
@@ -399,7 +399,7 @@ class FormSeeder extends Seeder
                     FieldOption::create(array_merge($optionData, ['form_field_id' => $field->id]));
                 }
             }
-            
+
             if ($field->type === 'checkbox') {
                 FieldOption::create([
                     'form_field_id' => $field->id,
@@ -526,7 +526,7 @@ class FormSeeder extends Seeder
 
         foreach ($fields as $fieldData) {
             $field = FormField::create(array_merge($fieldData, ['form_id' => $form->id]));
-            
+
             if ($field->type === 'select') {
                 $options = [
                     ['label' => 'Software Developer', 'value' => 'developer', 'order' => 1],
@@ -620,7 +620,7 @@ class FormSeeder extends Seeder
 
         foreach ($fields as $fieldData) {
             $field = FormField::create(array_merge($fieldData, ['form_id' => $form->id]));
-            
+
             if ($field->type === 'radio') {
                 $options = [
                     ['label' => 'Suggestion', 'value' => 'suggestion', 'order' => 1],

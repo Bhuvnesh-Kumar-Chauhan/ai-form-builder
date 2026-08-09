@@ -32,7 +32,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mbstring, dom, zip, sqlite3, bcmath, intl, gd, fileinfo
+          extensions: mbstring, dom, zip, sqlite3, bcmath, intl, gd, fileinfo, pcntl, posix
           coverage: none
 
       - name: Get Composer cache directory
@@ -64,6 +64,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
+          extensions: mbstring, dom, zip, sqlite3, bcmath, intl, gd, fileinfo, pcntl, posix
           tools: composer
 
       - name: Install PHP dependencies
@@ -107,6 +108,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
+          extensions: mbstring, dom, zip, sqlite3, bcmath, intl, gd, fileinfo, pcntl, posix
 
       - name: Setup Node
         uses: actions/setup-node@v4

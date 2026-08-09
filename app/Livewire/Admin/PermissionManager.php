@@ -3,19 +3,25 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
 
 class PermissionManager extends Component
 {
     public $roles = [];
+
     public $permissions = [];
+
     public $selectedRole = null;
+
     public $rolePermissions = [];
+
     public $newRoleName = '';
+
     public $newPermissionName = '';
+
     public $editingRole = null;
+
     public $editingPermission = null;
 
     public function mount()
@@ -27,7 +33,7 @@ class PermissionManager extends Component
     {
         $this->roles = Role::with('permissions')->get();
         $this->permissions = Permission::all();
-        
+
         if ($this->selectedRole) {
             $role = Role::find($this->selectedRole);
             if ($role) {

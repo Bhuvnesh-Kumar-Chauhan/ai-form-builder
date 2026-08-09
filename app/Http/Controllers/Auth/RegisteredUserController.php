@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Spatie\Permission\Models\Role;
 
 class RegisteredUserController extends Controller
 {
@@ -42,8 +43,8 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        if (class_exists(\Spatie\Permission\Models\Role::class)
-            && \Spatie\Permission\Models\Role::where('name', 'viewer')->exists()) {
+        if (class_exists(Role::class)
+            && Role::where('name', 'viewer')->exists()) {
             $user->assignRole('viewer');
         }
 

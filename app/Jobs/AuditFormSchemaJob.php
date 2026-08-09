@@ -19,9 +19,7 @@ class AuditFormSchemaJob implements ShouldQueue
 
     public int $tries = 1;
 
-    public function __construct(public int $generationId)
-    {
-    }
+    public function __construct(public int $generationId) {}
 
     public function handle(LlmClient $client, FormSchemaService $schemaService): void
     {
@@ -140,7 +138,7 @@ class AuditFormSchemaJob implements ShouldQueue
 
         return [
             ['role' => 'system', 'content' => $system],
-            ['role' => 'user', 'content' => 'Audit this form schema:' . "\n\n" . json_encode($schema ?? [], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)],
+            ['role' => 'user', 'content' => 'Audit this form schema:'."\n\n".json_encode($schema ?? [], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)],
         ];
     }
 }

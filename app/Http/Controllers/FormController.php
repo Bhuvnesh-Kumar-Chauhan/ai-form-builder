@@ -6,26 +6,25 @@ use App\Mail\NewSubmissionNotification;
 use App\Models\Form;
 use App\Models\FormSubmission;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 
 class FormController extends Controller
 {
     public function destroy(Form $form)
     {
         // Check permission
-        if (!Auth::user()->canDeleteForms()) {
+        if (! Auth::user()->canDeleteForms()) {
             abort(403, 'You do not have permission to delete forms.');
         }
 
-        if ($form->user_id !== Auth::id() && !Auth::user()->isSuperAdmin()) {
+        if ($form->user_id !== Auth::id() && ! Auth::user()->isSuperAdmin()) {
             abort(403, 'You do not own this form.');
         }
 
         $form->delete();
-        
+
         return redirect()->route('forms.index')
             ->with('message', 'Form deleted successfully.');
     }
@@ -33,28 +32,28 @@ class FormController extends Controller
     public function duplicate(Form $form)
     {
         // Check permission
-        if (!Auth::user()->canCreateForms()) {
+        if (! Auth::user()->canCreateForms()) {
             abort(403, 'You do not have permission to duplicate forms.');
         }
 
-        if ($form->user_id !== Auth::id() && !Auth::user()->isSuperAdmin()) {
+        if ($form->user_id !== Auth::id() && ! Auth::user()->isSuperAdmin()) {
             abort(403, 'You do not own this form.');
         }
 
         $newForm = $form->replicate();
-        $newForm->title = $form->title . ' (Copy)';
-        $newForm->slug = $form->slug . '-copy-' . time();
+        $newForm->title = $form->title.' (Copy)';
+        $newForm->slug = $form->slug.'-copy-'.time();
         $newForm->is_published = false;
         $newForm->submission_count = 0;
         $newForm->user_id = Auth::id();
         $newForm->save();
-        
+
         // Duplicate fields
         foreach ($form->fields as $field) {
             $newField = $field->replicate();
             $newField->form_id = $newForm->id;
             $newField->save();
-            
+
             // Duplicate options
             foreach ($field->options as $option) {
                 $newOption = $option->replicate();
@@ -62,7 +61,7 @@ class FormController extends Controller
                 $newOption->save();
             }
         }
-        
+
         return redirect()->route('forms.edit', $newForm)
             ->with('message', 'Form duplicated successfully.');
     }
@@ -70,21 +69,21 @@ class FormController extends Controller
     public function togglePublish(Form $form)
     {
         // Check permission
-        if (!Auth::user()->canPublishForms()) {
+        if (! Auth::user()->canPublishForms()) {
             abort(403, 'You do not have permission to publish forms.');
         }
 
-        if ($form->user_id !== Auth::id() && !Auth::user()->isSuperAdmin()) {
+        if ($form->user_id !== Auth::id() && ! Auth::user()->isSuperAdmin()) {
             abort(403, 'You do not own this form.');
         }
 
-        $form->is_published = !$form->is_published;
-        if ($form->is_published && !$form->published_at) {
+        $form->is_published = ! $form->is_published;
+        if ($form->is_published && ! $form->published_at) {
             $form->published_at = now();
         }
         $form->save();
-        
-        return back()->with('message', 
+
+        return back()->with('message',
             $form->is_published ? 'Form published successfully.' : 'Form unpublished.'
         );
     }
@@ -93,16 +92,16 @@ class FormController extends Controller
     {
         // Get validation rules from form schema
         $rules = $form->getValidationRulesArray();
-        
+
         $validator = Validator::make($request->all(), $rules);
-        
+
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
-        
+
         // Save submission
         $submission = FormSubmission::create([
             'form_id' => $form->id,
@@ -116,7 +115,7 @@ class FormController extends Controller
             ],
             'submitted_at' => now(),
         ]);
-        
+
         $form->increment('submission_count');
 
         $this->notifyOwner($form, $submission);
@@ -153,11 +152,11 @@ class FormController extends Controller
     public function exportSubmissions(Form $form)
     {
         // Check permission
-        if (!Auth::user()->canExportSubmissions()) {
+        if (! Auth::user()->canExportSubmissions()) {
             abort(403, 'You do not have permission to export submissions.');
         }
 
-        if ($form->user_id !== Auth::id() && !Auth::user()->isSuperAdmin()) {
+        if ($form->user_id !== Auth::id() && ! Auth::user()->isSuperAdmin()) {
             abort(403, 'You do not own this form.');
         }
 
@@ -168,16 +167,16 @@ class FormController extends Controller
     public function deleteSubmission(Form $form, FormSubmission $submission)
     {
         // Check permission
-        if (!Auth::user()->canDeleteSubmissions()) {
+        if (! Auth::user()->canDeleteSubmissions()) {
             abort(403, 'You do not have permission to delete submissions.');
         }
 
-        if ($form->user_id !== Auth::id() && !Auth::user()->isSuperAdmin()) {
+        if ($form->user_id !== Auth::id() && ! Auth::user()->isSuperAdmin()) {
             abort(403, 'You do not own this form.');
         }
 
         $submission->delete();
-        
+
         return redirect()->back()->with('message', 'Submission deleted successfully.');
     }
 }

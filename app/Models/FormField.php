@@ -4,13 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Form;
 
 class FormField extends Model
 {
     use HasFactory;
 
     protected $table = 'form_fields';
+
     protected $fillable = [
         'form_id',
         'field_key',
@@ -73,7 +73,7 @@ class FormField extends Model
             'section' => 'Section Heading',
             'rating' => 'Rating',
         ];
-        
+
         return $types[$this->type] ?? $this->type;
     }
 }

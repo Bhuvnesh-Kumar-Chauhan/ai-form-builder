@@ -18,7 +18,7 @@ class LlmClient
      */
     public function complete(array $messages): array
     {
-        $url = rtrim(config('ai.url'), '/') . '/chat/completions';
+        $url = rtrim(config('ai.url'), '/').'/chat/completions';
 
         $payload = [
             'model' => config('ai.model'),
@@ -43,7 +43,7 @@ class LlmClient
         try {
             $response = $request->post($url, $payload);
         } catch (\Throwable $e) {
-            throw new LlmException('LLM request failed: ' . $e->getMessage(), 0, $e);
+            throw new LlmException('LLM request failed: '.$e->getMessage(), 0, $e);
         }
 
         $latencyMs = (int) round((hrtime(true) - $startedAt) / 1_000_000);

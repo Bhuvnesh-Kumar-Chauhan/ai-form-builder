@@ -2,17 +2,19 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
-use App\Models\User;
-use Illuminate\support\Facades\Hash;
+use Spatie\Permission\PermissionRegistrar;
+
 class PermissionSeeder extends Seeder
 {
     public function run()
     {
         // Reset cached roles and permissions
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         // Create permissions
         $permissions = [
@@ -24,17 +26,17 @@ class PermissionSeeder extends Seeder
             'manage forms',
             'publish forms',
             'duplicate forms',
-            
+
             // Submission permissions
             'view submissions',
             'export submissions',
             'delete submissions',
-            
+
             // User management
             'manage users',
             'manage roles',
             'manage permissions',
-            
+
             // Settings
             'manage settings',
         ];

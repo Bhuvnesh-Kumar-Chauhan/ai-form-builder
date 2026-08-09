@@ -5,17 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
-use App\Models\Form;
 
 class FormSubmission extends Model
 {
     use HasFactory;
+
     protected $table = 'form_submissions';
 
     protected $fillable = [
         'form_id', 'submission_uuid', 'data',
         'ip_address', 'user_agent', 'meta_data',
-        'is_spam', 'submitted_at'
+        'is_spam', 'submitted_at',
     ];
 
     protected $casts = [
@@ -28,7 +28,7 @@ class FormSubmission extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($submission) {
             $submission->submission_uuid = (string) Str::uuid();
             if (empty($submission->submitted_at)) {
@@ -47,6 +47,7 @@ class FormSubmission extends Model
     {
         return $this->data[$key] ?? null;
     }
+
     public function getFormattedDataAttribute()
     {
         $formatted = [];
@@ -57,6 +58,7 @@ class FormSubmission extends Model
                 $formatted[$key] = $value;
             }
         }
+
         return $formatted;
     }
 }

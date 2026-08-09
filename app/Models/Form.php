@@ -10,8 +10,8 @@ use Illuminate\Support\Str;
 class Form extends Model
 {
     use HasFactory, SoftDeletes;
-    protected $table='forms';
 
+    protected $table = 'forms';
 
     protected $fillable = [
         'uuid',
@@ -40,11 +40,11 @@ class Form extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($form) {
             $form->uuid = (string) Str::uuid();
             if (empty($form->slug)) {
-                $form->slug = Str::slug($form->title) . '-' . Str::random(6);
+                $form->slug = Str::slug($form->title).'-'.Str::random(6);
             }
         });
     }
@@ -77,10 +77,10 @@ class Form extends Model
     public function scopePublished($query)
     {
         return $query->where('is_published', true)
-                    ->where(function ($q) {
-                        $q->whereNull('expires_at')
-                          ->orWhere('expires_at', '>', now());
-                    });
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            });
     }
 
     public function getFillUrlAttribute()
@@ -93,16 +93,16 @@ class Form extends Model
         $rules = [];
         foreach ($this->fields as $field) {
             $fieldRules = [];
-            
+
             if ($field->is_required) {
                 $fieldRules[] = 'required';
             }
-            
+
             if ($field->validation) {
                 foreach ($field->validation as $rule => $value) {
                     if ($value !== null && $value !== '') {
                         if (in_array($rule, ['min', 'max', 'minlength', 'maxlength'])) {
-                            $fieldRules[] = $rule . ':' . $value;
+                            $fieldRules[] = $rule.':'.$value;
                         } elseif ($rule === 'email') {
                             $fieldRules[] = 'email';
                         } elseif ($rule === 'numeric') {
@@ -110,13 +110,13 @@ class Form extends Model
                         } elseif ($rule === 'url') {
                             $fieldRules[] = 'url';
                         } elseif ($rule === 'regex') {
-                            $fieldRules[] = 'regex:' . $value;
+                            $fieldRules[] = 'regex:'.$value;
                         } elseif ($rule === 'mimes') {
-                            $fieldRules[] = 'mimes:' . $value;
+                            $fieldRules[] = 'mimes:'.$value;
                         } elseif ($rule === 'unique') {
-                            $fieldRules[] = 'unique:' . $value;
+                            $fieldRules[] = 'unique:'.$value;
                         } elseif ($rule === 'in') {
-                            $fieldRules[] = 'in:' . $value;
+                            $fieldRules[] = 'in:'.$value;
                         } elseif ($rule === 'date') {
                             $fieldRules[] = 'date';
                         } elseif ($rule === 'array') {
@@ -127,11 +127,12 @@ class Form extends Model
                     }
                 }
             }
-            
-            if (!empty($fieldRules)) {
+
+            if (! empty($fieldRules)) {
                 $rules[$field->field_key] = $fieldRules;
             }
         }
+
         return $rules;
     }
 

@@ -22,7 +22,9 @@ class FormImportService
 
     /** Highest confidence for types inferred from explicit signal. */
     public const CONFIDENCE_HIGH = 'high';
+
     public const CONFIDENCE_MEDIUM = 'medium';
+
     public const CONFIDENCE_LOW = 'low';
 
     /**
@@ -63,7 +65,7 @@ class FormImportService
             throw new \RuntimeException('The zip extension is required to read .docx files.');
         }
 
-        $zip = new \ZipArchive();
+        $zip = new \ZipArchive;
         if ($zip->open($path) !== true) {
             throw new \RuntimeException('Could not open the DOCX file (invalid or corrupt archive).');
         }
@@ -75,7 +77,7 @@ class FormImportService
             throw new \RuntimeException('The DOCX file contains no document body.');
         }
 
-        $doc = new \DOMDocument();
+        $doc = new \DOMDocument;
         $errors = libxml_use_internal_errors(true);
         $loaded = $doc->loadXML($xml);
         libxml_clear_errors();
@@ -224,7 +226,7 @@ class FormImportService
                     if ($t === '') {
                         continue;
                     }
-                    $cellText = $cellText === '' ? $t : $cellText . ' ' . $t;
+                    $cellText = $cellText === '' ? $t : $cellText.' '.$t;
                 }
 
                 if (trim($cellText) !== '') {
@@ -294,7 +296,7 @@ class FormImportService
 
             if (! $attached) {
                 $label = $this->lastSectionLabel($fields) ?: $label;
-                $warnings[] = 'A bulleted list with no preceding question was turned into a checkbox field ("' . Str::limit($label, 40) . '").';
+                $warnings[] = 'A bulleted list with no preceding question was turned into a checkbox field ("'.Str::limit($label, 40).'").';
                 $type = $hasCheckbox ? 'checkbox' : (count($options) > 6 ? 'select' : 'radio');
                 $fields[] = $this->buildField(
                     label: $label,
@@ -386,7 +388,7 @@ class FormImportService
             }
 
             if (count($fields) >= self::MAX_FIELDS) {
-                $warnings[] = 'Stopped parsing after ' . self::MAX_FIELDS . ' fields to keep the form manageable.';
+                $warnings[] = 'Stopped parsing after '.self::MAX_FIELDS.' fields to keep the form manageable.';
                 break;
             }
         }
@@ -416,7 +418,7 @@ class FormImportService
         try {
             $spreadsheet = IOFactory::load($path);
         } catch (\Throwable $e) {
-            throw new \RuntimeException('Could not read the spreadsheet: ' . $e->getMessage());
+            throw new \RuntimeException('Could not read the spreadsheet: '.$e->getMessage());
         }
 
         $sheet = $spreadsheet->getActiveSheet();
@@ -479,7 +481,8 @@ class FormImportService
             $label = $this->stripRequiredMarker($label, $isRequired);
 
             if ($label === '') {
-                $warnings[] = 'Row ' . ($index + 2) . ' has no label and was skipped.';
+                $warnings[] = 'Row '.($index + 2).' has no label and was skipped.';
+
                 continue;
             }
 
@@ -526,7 +529,7 @@ class FormImportService
             );
 
             if (count($fields) >= self::MAX_FIELDS) {
-                $warnings[] = 'Stopped after ' . self::MAX_FIELDS . ' fields.';
+                $warnings[] = 'Stopped after '.self::MAX_FIELDS.' fields.';
                 break;
             }
         }
@@ -561,8 +564,9 @@ class FormImportService
                     }
                 }
                 if ($hasData) {
-                    $warnings[] = "Column " . $colIndex + 1 . " has no header but contains data - skipped.";
+                    $warnings[] = 'Column '.$colIndex + 1 .' has no header but contains data - skipped.';
                 }
+
                 continue;
             }
 
@@ -575,6 +579,7 @@ class FormImportService
 
             if (empty($nonEmptyValues)) {
                 $warnings[] = "Column '{$label}' has no data and was skipped.";
+
                 continue;
             }
 
@@ -597,6 +602,7 @@ class FormImportService
                     );
                     $currentSection = $section;
                 }
+
                 continue;
             }
 
@@ -612,7 +618,7 @@ class FormImportService
             );
 
             if (count($fields) >= self::MAX_FIELDS) {
-                $warnings[] = 'Stopped after ' . self::MAX_FIELDS . ' fields.';
+                $warnings[] = 'Stopped after '.self::MAX_FIELDS.' fields.';
                 break;
             }
         }
@@ -846,13 +852,13 @@ class FormImportService
         foreach ($labels as $label) {
             $value = Str::slug($label, '_');
             if ($value === '') {
-                $value = 'option_' . Str::random(4);
+                $value = 'option_'.Str::random(4);
             }
 
             $base = $value;
             $i = 1;
             while (in_array($value, $used, true)) {
-                $value = $base . '_' . $i++;
+                $value = $base.'_'.$i++;
             }
             $used[] = $value;
 
@@ -989,6 +995,7 @@ class FormImportService
 
             if ($decoded === null || ! isset($decoded['fields']) || ! is_array($decoded['fields'])) {
                 $lastError = 'The response was not valid JSON with a "fields" array.';
+
                 continue;
             }
 
@@ -1004,7 +1011,7 @@ class FormImportService
         }
 
         throw new \RuntimeException(
-            'AI refinement failed after ' . $maxAttempts . ' attempt(s). ' . ($lastError ?? '')
+            'AI refinement failed after '.$maxAttempts.' attempt(s). '.($lastError ?? '')
         );
     }
 
@@ -1023,7 +1030,7 @@ class FormImportService
             ];
         }, $fields);
 
-        $system = <<<PROMPT
+        $system = <<<'PROMPT'
         You are an expert form designer refining an auto-parsed form. The form's structure
         (fields, labels, options, order) came from a Word/Excel document and is FINAL.
         Your only job is to improve each field's TYPE, REQUIRED flag and VALIDATION rules.
@@ -1054,7 +1061,7 @@ class FormImportService
 
         $messages = [
             ['role' => 'system', 'content' => $system],
-            ['role' => 'user', 'content' => 'Refine these parsed fields:' . "\n\n" . json_encode(['fields' => $listing], JSON_UNESCAPED_UNICODE)],
+            ['role' => 'user', 'content' => 'Refine these parsed fields:'."\n\n".json_encode(['fields' => $listing], JSON_UNESCAPED_UNICODE)],
         ];
 
         if ($lastError) {

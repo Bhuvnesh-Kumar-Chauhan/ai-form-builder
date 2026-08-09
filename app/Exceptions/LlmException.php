@@ -4,6 +4,4 @@ namespace App\Exceptions;
 
 use RuntimeException;
 
-class LlmException extends RuntimeException
-{
-}
+class LlmException extends RuntimeException {}

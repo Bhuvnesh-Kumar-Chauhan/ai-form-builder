@@ -2,34 +2,50 @@
 
 namespace App\Livewire\Forms;
 
-use Livewire\Component;
-use Livewire\Attributes\On;
+use App\Jobs\GenerateFormSchemaJob;
+use App\Models\AiFormGenerationJob;
+use App\Models\FieldOption;
 use App\Models\Form;
 use App\Models\FormField;
-use App\Models\FieldOption;
-use App\Models\AiFormGenerationJob;
-use App\Jobs\GenerateFormSchemaJob;
 use App\Services\FormSchemaService;
-use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Livewire\Attributes\On;
+use Livewire\Component;
 
 class FormBuilder extends Component
 {
     public $form = [];
+
     public $fields = [];
+
     public $editingField = null;
+
     public $showFieldModal = false;
+
     public $showSchemaModal = false;
+
     public $schemaEditor = '';
+
     public $fieldTypes = [];
+
     public $formSettings = [];
+
     public $sections = [];
+
     public $showSectionModal = false;
+
     public $editingSection = null;
+
     public $sectionName = '';
+
     public $selectedFieldType = null;
+
     public $fieldTypeConfigs = [];
+
     public $statusMessage = null;
+
     public $aiGenerationJobId = null;
 
     protected $rules = [
@@ -48,7 +64,7 @@ class FormBuilder extends Component
         'fields.*.field_key' => 'field key',
     ];
 
-    public function mount(Form $form = null)
+    public function mount(?Form $form = null)
     {
         $this->form = [
             'id' => $form->id ?? null,
@@ -82,7 +98,7 @@ class FormBuilder extends Component
 
     public function loadFields()
     {
-        if (!empty($this->form['id'])) {
+        if (! empty($this->form['id'])) {
             $this->fields = Form::find($this->form['id'])->fields()
                 ->with('options')
                 ->orderBy('order')
@@ -93,9 +109,9 @@ class FormBuilder extends Component
 
     public function loadSections()
     {
-        if (!empty($this->form['id']) && !empty($this->fields)) {
+        if (! empty($this->form['id']) && ! empty($this->fields)) {
             $this->sections = collect($this->fields)
-                ->filter(fn($field) => $field['type'] === 'section')
+                ->filter(fn ($field) => $field['type'] === 'section')
                 ->pluck('label')
                 ->toArray();
         }
@@ -159,10 +175,10 @@ class FormBuilder extends Component
 
     public function addField($type)
     {
-        $fieldKey = 'field_' . Str::random(8);
+        $fieldKey = 'field_'.Str::random(8);
         $config = $this->fieldTypeConfigs[$type] ?? [];
         $defaultValidation = $config['default_validation'] ?? [];
-        
+
         $fieldData = [
             'field_key' => $fieldKey,
             'label' => $this->getDefaultLabel($type),
@@ -208,6 +224,7 @@ class FormBuilder extends Component
             'range' => 'Range',
             'hidden' => 'Hidden Field',
         ];
+
         return $labels[$type] ?? ucfirst($type);
     }
 
@@ -215,18 +232,19 @@ class FormBuilder extends Component
     {
         $field = $this->fields[$index];
         $newField = $field;
-        $newField['field_key'] = 'field_' . Str::random(8);
-        $newField['label'] = $field['label'] . ' (Copy)';
+        $newField['field_key'] = 'field_'.Str::random(8);
+        $newField['label'] = $field['label'].' (Copy)';
         $newField['order'] = count($this->fields);
         $newField['id'] = null;
-        
+
         if (isset($newField['options'])) {
-            $newField['options'] = collect($newField['options'])->map(function($option) {
+            $newField['options'] = collect($newField['options'])->map(function ($option) {
                 $option['id'] = null;
+
                 return $option;
             })->toArray();
         }
-        
+
         $this->fields[] = $newField;
         $this->dispatch('fieldDuplicated');
     }
@@ -242,15 +260,16 @@ class FormBuilder extends Component
     {
         $index = $this->editingField;
         $field = $this->fields[$index];
-        
+
         // Validate field key uniqueness
         $existingKeys = collect($this->fields)
             ->where('id', '!=', $field['id'] ?? null)
             ->pluck('field_key')
             ->toArray();
-            
+
         if (in_array($field['field_key'], $existingKeys)) {
-            $this->addError('fields.' . $index . '.field_key', 'This field key is already used.');
+            $this->addError('fields.'.$index.'.field_key', 'This field key is already used.');
+
             return;
         }
 
@@ -261,13 +280,13 @@ class FormBuilder extends Component
 
     public function addOption($index)
     {
-        if (!isset($this->fields[$index]['options'])) {
+        if (! isset($this->fields[$index]['options'])) {
             $this->fields[$index]['options'] = [];
         }
 
         $this->fields[$index]['options'][] = [
             'label' => '',
-            'value' => 'option_' . Str::random(5),
+            'value' => 'option_'.Str::random(5),
             'order' => count($this->fields[$index]['options']),
             'is_default' => false,
         ];
@@ -285,34 +304,34 @@ class FormBuilder extends Component
     {
         unset($this->fields[$index]);
         $this->fields = array_values($this->fields);
-        
+
         // Reorder remaining fields
         foreach ($this->fields as $idx => $field) {
             $this->fields[$idx]['order'] = $idx;
         }
-        
+
         $this->dispatch('fieldRemoved');
     }
 
     public function reorderFields($orderedIds)
     {
         $fields = collect($this->fields);
-        
+
         foreach ($orderedIds as $index => $id) {
-            $fieldIndex = $fields->search(function($field) use ($id) {
+            $fieldIndex = $fields->search(function ($field) use ($id) {
                 return ($field['id'] ?? null) == $id;
             });
-            
+
             if ($fieldIndex !== false) {
                 $this->fields[$fieldIndex]['order'] = $index;
             }
         }
-        
+
         // Sort fields by order
-        usort($this->fields, function($a, $b) {
+        usort($this->fields, function ($a, $b) {
             return ($a['order'] ?? 0) <=> ($b['order'] ?? 0);
         });
-        
+
         $this->dispatch('fieldsReordered');
     }
 
@@ -327,11 +346,12 @@ class FormBuilder extends Component
     {
         if (empty($this->sectionName)) {
             $this->addError('sectionName', 'Section name is required.');
+
             return;
         }
 
         $fieldData = [
-            'field_key' => 'section_' . Str::slug($this->sectionName) . '_' . Str::random(4),
+            'field_key' => 'section_'.Str::slug($this->sectionName).'_'.Str::random(4),
             'label' => $this->sectionName,
             'type' => 'section',
             'order' => count($this->fields),
@@ -363,10 +383,11 @@ class FormBuilder extends Component
         try {
             $schema = json_decode($this->schemaEditor, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
-                $this->addError('schemaEditor', 'Invalid JSON format: ' . json_last_error_msg());
+                $this->addError('schemaEditor', 'Invalid JSON format: '.json_last_error_msg());
+
                 return;
             }
-            
+
             // Validate schema structure
             $validator = Validator::make($schema, [
                 'title' => 'required|string',
@@ -375,23 +396,24 @@ class FormBuilder extends Component
                 'fields.*.label' => 'required|string',
                 'fields.*.type' => 'required|string',
             ]);
-            
+
             if ($validator->fails()) {
-                $this->addError('schemaEditor', 'Invalid schema structure: ' . $validator->errors()->first());
+                $this->addError('schemaEditor', 'Invalid schema structure: '.$validator->errors()->first());
+
                 return;
             }
-            
+
             // Update form from schema
             $this->form['title'] = $schema['title'];
             $this->form['description'] = $schema['description'] ?? '';
             $this->fields = $schema['fields'];
-            
+
             $this->showSchemaModal = false;
             $this->dispatch('schemaUpdated');
             session()->flash('message', 'Schema updated successfully!');
-            
+
         } catch (\Exception $e) {
-            $this->addError('schemaEditor', 'Error saving schema: ' . $e->getMessage());
+            $this->addError('schemaEditor', 'Error saving schema: '.$e->getMessage());
         }
     }
 
@@ -401,8 +423,9 @@ class FormBuilder extends Component
             'title' => $this->form['title'],
             'description' => $this->form['description'],
             'settings' => $this->form['settings'] ?? [],
-            'fields' => array_map(function($field) {
+            'fields' => array_map(function ($field) {
                 unset($field['id'], $field['form_id'], $field['created_at'], $field['updated_at']);
+
                 return $field;
             }, $this->fields),
         ];
@@ -411,29 +434,30 @@ class FormBuilder extends Component
     public function saveForm()
     {
         $this->validate();
-        
+
         // Generate validation rules for fields
         $fieldValidationErrors = [];
         foreach ($this->fields as $index => $field) {
             if (empty($field['label'])) {
-                $fieldValidationErrors[] = "Field at position " . ($index + 1) . " has no label.";
+                $fieldValidationErrors[] = 'Field at position '.($index + 1).' has no label.';
             }
             if (empty($field['field_key'])) {
                 $fieldValidationErrors[] = "Field '{$field['label']}' has no key.";
             }
         }
-        
-        if (!empty($fieldValidationErrors)) {
+
+        if (! empty($fieldValidationErrors)) {
             session()->flash('error', implode('<br>', $fieldValidationErrors));
+
             return;
         }
 
-        if (!empty($this->form['id'])) {
+        if (! empty($this->form['id'])) {
             $model = Form::findOrFail($this->form['id']);
         } else {
-            $model = new Form();
+            $model = new Form;
             $model->user_id = auth()->id();
-            $model->slug = Str::slug($this->form['title']) . '-' . Str::random(6);
+            $model->slug = Str::slug($this->form['title']).'-'.Str::random(6);
         }
 
         $model->title = $this->form['title'];
@@ -441,8 +465,8 @@ class FormBuilder extends Component
         $model->settings = $this->form['settings'];
         $model->is_published = $this->form['is_published'] ?? false;
         $model->is_multi_step = $this->form['is_multi_step'] ?? false;
-        $model->expires_at = !empty($this->form['expires_at'])
-            ? \Illuminate\Support\Carbon::parse($this->form['expires_at'])
+        $model->expires_at = ! empty($this->form['expires_at'])
+            ? Carbon::parse($this->form['expires_at'])
             : null;
         $model->save();
 
@@ -462,14 +486,14 @@ class FormBuilder extends Component
                 $fieldData['form_id'] = $model->id;
                 $field = FormField::create($fieldData);
             }
-            
+
             // Save options if any
-            if (isset($fieldData['options']) && !empty($fieldData['options'])) {
+            if (isset($fieldData['options']) && ! empty($fieldData['options'])) {
                 // Delete existing options if field exists
                 if (isset($fieldData['id'])) {
                     FieldOption::where('form_field_id', $field->id)->delete();
                 }
-                
+
                 foreach ($fieldData['options'] as $optionData) {
                     $optionData['form_field_id'] = $field->id;
                     FieldOption::create($optionData);
@@ -478,27 +502,29 @@ class FormBuilder extends Component
         }
 
         session()->flash('message', 'Form saved successfully!');
+
         return redirect()->route('forms.index');
     }
 
     public function previewForm()
     {
         $this->saveForm();
+
         return redirect()->route('forms.show', $this->form['slug']);
     }
 
     public function setStatus(bool $published)
     {
-        if (!auth()->user()->can('publish forms')) {
+        if (! auth()->user()->can('publish forms')) {
             abort(403, 'You do not have permission to publish forms.');
         }
 
         $this->form['is_published'] = $published;
 
-        if (!empty($this->form['id'])) {
+        if (! empty($this->form['id'])) {
             $model = Form::findOrFail($this->form['id']);
             $model->is_published = $published;
-            if ($published && !$model->published_at) {
+            if ($published && ! $model->published_at) {
                 $model->published_at = now();
             }
             $model->save();
@@ -544,6 +570,7 @@ class FormBuilder extends Component
 
         if (! is_array($schema)) {
             $this->addError('ai', 'The AI schema could not be read. Please try again.');
+
             return;
         }
 

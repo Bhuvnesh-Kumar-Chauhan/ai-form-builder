@@ -16,7 +16,7 @@ class SubmissionSeeder extends Seeder
         foreach ($forms as $form) {
             // Create 5-10 submissions per form
             $count = rand(5, 10);
-            
+
             for ($i = 0; $i < $count; $i++) {
                 $this->createSubmission($form);
             }
@@ -26,7 +26,7 @@ class SubmissionSeeder extends Seeder
     private function createSubmission($form)
     {
         $data = [];
-        
+
         foreach ($form->fields as $field) {
             $data[$field->field_key] = $this->generateFieldValue($field);
         }
@@ -56,24 +56,27 @@ class SubmissionSeeder extends Seeder
             case 'number':
                 return rand(1, 100);
             case 'phone':
-                return '+' . rand(1, 99) . rand(1000000000, 9999999999);
+                return '+'.rand(1, 99).rand(1000000000, 9999999999);
             case 'textarea':
                 return $this->randomText(rand(20, 100));
             case 'select':
                 $options = $field->options->pluck('value')->toArray();
-                return !empty($options) ? $options[array_rand($options)] : null;
+
+                return ! empty($options) ? $options[array_rand($options)] : null;
             case 'radio':
                 $options = $field->options->pluck('value')->toArray();
-                return !empty($options) ? $options[array_rand($options)] : null;
+
+                return ! empty($options) ? $options[array_rand($options)] : null;
             case 'checkbox':
                 $options = $field->options->pluck('value')->toArray();
-                return !empty($options) ? [$options[array_rand($options)]] : [];
+
+                return ! empty($options) ? [$options[array_rand($options)]] : [];
             case 'rating':
                 return rand(1, 5);
             case 'date':
                 return now()->subDays(rand(0, 365))->format('Y-m-d');
             case 'url':
-                return 'https://example.com/' . Str::random(10);
+                return 'https://example.com/'.Str::random(10);
             default:
                 return 'Sample value';
         }
@@ -86,25 +89,27 @@ class SubmissionSeeder extends Seeder
             'sed', 'do', 'eiusmod', 'tempor', 'incididunt', 'ut', 'labore', 'et', 'dolore',
             'magna', 'aliqua', 'Ut', 'enim', 'ad', 'minim', 'veniam', 'quis', 'nostrud',
             'exercitation', 'ullamco', 'laboris', 'nisi', 'ut', 'aliquip', 'ex', 'ea',
-            'commodo', 'consequat', 'Duis', 'aute', 'irure', 'dolor', 'in', 'reprehenderit'
+            'commodo', 'consequat', 'Duis', 'aute', 'irure', 'dolor', 'in', 'reprehenderit',
         ];
-        
+
         $text = '';
         for ($i = 0; $i < $length; $i++) {
-            $text .= $words[array_rand($words)] . ' ';
+            $text .= $words[array_rand($words)].' ';
         }
+
         return trim($text);
     }
 
     private function randomEmail()
     {
         $domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'example.com', 'test.com'];
-        return Str::random(rand(5, 10)) . '@' . $domains[array_rand($domains)];
+
+        return Str::random(rand(5, 10)).'@'.$domains[array_rand($domains)];
     }
 
     private function generateIP()
     {
-        return rand(1, 255) . '.' . rand(0, 255) . '.' . rand(0, 255) . '.' . rand(0, 255);
+        return rand(1, 255).'.'.rand(0, 255).'.'.rand(0, 255).'.'.rand(0, 255);
     }
 
     private function generateUserAgent()
@@ -116,7 +121,7 @@ class SubmissionSeeder extends Seeder
             'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1',
             'Mozilla/5.0 (iPad; CPU OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1',
         ];
-        
+
         return $agents[array_rand($agents)];
     }
 }

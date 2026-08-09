@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Form;
 use App\Models\FormSubmission;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -19,7 +18,7 @@ class DashboardController extends Controller
             : Form::where('user_id', $user->id);
 
         $submissionQuery = FormSubmission::whereHas('form', function ($query) use ($user, $isAdmin) {
-            if (!$isAdmin) {
+            if (! $isAdmin) {
                 $query->where('user_id', $user->id);
             }
         });

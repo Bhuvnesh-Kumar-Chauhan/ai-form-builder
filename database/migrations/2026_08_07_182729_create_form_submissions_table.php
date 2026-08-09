@@ -20,13 +20,13 @@ return new class extends Migration
             $table->timestamp('submitted_at');
             $table->timestamps();
 
-           // Indexes for submission queries
+            // Indexes for submission queries
             $table->index(['form_id', 'submitted_at']);
             $table->index(['form_id', 'is_spam']);
             $table->index('submission_uuid');
             $table->index('ip_address');
             $table->index('submitted_at');
-            
+
             // For search functionality
             if (Schema::getConnection()->getDriverName() === 'mysql') {
                 $table->fullText('data');

@@ -17,16 +17,18 @@ trait HasPermissions
                 return true;
             }
         }
+
         return false;
     }
 
     public function userHasAllPermissions($permissions)
     {
         foreach ($permissions as $permission) {
-            if (!$this->hasPermissionTo($permission)) {
+            if (! $this->hasPermissionTo($permission)) {
                 return false;
             }
         }
+
         return true;
     }
 
@@ -114,12 +116,13 @@ trait HasPermissions
         if (is_string($roles)) {
             $roles = explode('|', $roles);
         }
-        
+
         foreach ($roles as $role) {
             if ($this->hasRole($role)) {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -129,12 +132,13 @@ trait HasPermissions
         if (is_string($roles)) {
             $roles = explode('|', $roles);
         }
-        
+
         foreach ($roles as $role) {
-            if (!$this->hasRole($role)) {
+            if (! $this->hasRole($role)) {
                 return false;
             }
         }
+
         return true;
     }
 }
