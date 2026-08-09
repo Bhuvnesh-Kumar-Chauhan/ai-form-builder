@@ -34,6 +34,14 @@
                                 </ul>
                             </div>
                             @endcan
+                            @if(!empty($form['id']))
+                                <a href="{{ route('forms.analytics', $form['slug']) }}" class="btn btn-outline-secondary btn-sm me-2">
+                                    <i class="fas fa-chart-line"></i> Analytics
+                                </a>
+                                <a href="{{ route('forms.versions', $form['slug']) }}" class="btn btn-outline-secondary btn-sm me-2">
+                                    <i class="fas fa-history"></i> Versions
+                                </a>
+                            @endif
                             <button type="button" class="btn btn-outline-primary btn-sm me-2" wire:click="openSchemaEditor">
                                 <i class="fas fa-code"></i> Schema
                             </button>

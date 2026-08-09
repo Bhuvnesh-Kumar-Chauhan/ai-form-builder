@@ -41,6 +41,12 @@
 
                 <form wire:submit.prevent="submit">
                     @csrf
+
+                    <!-- Honeypot: hidden from humans, irresistible to bots. -->
+                    <div style="position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden;" aria-hidden="true">
+                        <label for="website">Website</label>
+                        <input type="text" id="website" name="website" wire:model="honeypot" tabindex="-1" autocomplete="off">
+                    </div>
                     
                     <!-- Display Errors -->
                     @if($validationErrors)
@@ -269,4 +275,40 @@
     }
     </style>
     @endpush
+
+    @if($trackAnalytics)
+        @push('scripts')
+        <script>
+            (function () {
+                const beaconUrl = "{{ route('forms.analytics.beacon', $form->slug) }}";
+                const sessionId = "{{ $analyticsSessionId }}";
+                const token = document.querySelector('meta[name="csrf-token"]');
+
+                function sendAbandon() {
+                    if (navigator.sendBeacon) {
+                        const body = new FormData();
+                        body.append('event', 'abandon');
+                        body.append('session_id', sessionId);
+                        navigator.sendBeacon(beaconUrl, body);
+                        return;
+                    }
+
+                    fetch(beaconUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': token ? token.getAttribute('content') : '',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({ event: 'abandon', session_id: sessionId }),
+                        credentials: 'same-origin',
+                        keepalive: true,
+                    });
+                }
+
+                window.addEventListener('pagehide', sendAbandon);
+            })();
+        </script>
+        @endpush
+    @endif
 </div>

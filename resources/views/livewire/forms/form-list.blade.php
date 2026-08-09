@@ -93,6 +93,12 @@
                                         <a href="{{ route('forms.submissions', $form->slug) }}" class="btn btn-outline-info">
                                             <i class="fas fa-list"></i>
                                         </a>
+                                        <a href="{{ route('forms.analytics', $form->slug) }}" class="btn btn-outline-secondary" title="Analytics">
+                                            <i class="fas fa-chart-line"></i>
+                                        </a>
+                                        <a href="{{ route('forms.versions', $form->slug) }}" class="btn btn-outline-secondary" title="Version History">
+                                            <i class="fas fa-history"></i>
+                                        </a>
                                         <button wire:click="duplicateForm({{ $form->id }})" class="btn btn-outline-warning" title="Duplicate">
                                             <i class="fas fa-copy"></i>
                                         </button>

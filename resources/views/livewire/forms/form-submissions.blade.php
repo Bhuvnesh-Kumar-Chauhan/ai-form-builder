@@ -24,11 +24,18 @@
         <div class="card-body">
             <!-- Search & Filters -->
             <div class="row mb-3">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-search"></i></span>
                         <input type="text" wire:model="search" class="form-control" placeholder="Search submissions...">
                     </div>
+                </div>
+                <div class="col-md-2">
+                    <select wire:model="spamFilter" class="form-select">
+                        <option value="all">All submissions</option>
+                        <option value="legit">Legitimate only</option>
+                        <option value="spam">Spam only</option>
+                    </select>
                 </div>
                 <div class="col-md-3">
                     <select wire:model="perPage" class="form-select">
@@ -70,11 +77,18 @@
                     </thead>
                     <tbody>
                         @forelse($submissions as $submission)
-                            <tr>
+                            <tr class="{{ $submission->is_spam ? 'table-danger' : '' }}">
                                 <td>
                                     <input type="checkbox" wire:model="selectedSubmissions" value="{{ $submission->id }}">
                                 </td>
-                                <td><code>{{ Str::limit($submission->submission_uuid, 8) }}</code></td>
+                                <td>
+                                    <code>{{ Str::limit($submission->submission_uuid, 8) }}</code>
+                                    @if($submission->is_spam)
+                                        <span class="badge bg-danger ms-1" title="Automatically flagged as spam">
+                                            <i class="fas fa-bug"></i> SPAM
+                                        </span>
+                                    @endif
+                                </td>
                                 <td>{{ $submission->submitted_at->format('Y-m-d H:i') }}</td>
                                 <td>{{ $submission->ip_address }}</td>
                                 @foreach($form->fields as $field)
@@ -92,11 +106,18 @@
                                     @endif
                                 @endforeach
                                 <td>
-                                    <button wire:click="deleteSubmission({{ $submission->id }})" 
-                                            class="btn btn-sm btn-outline-danger"
-                                            onclick="return confirm('Delete this submission?')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    <div class="btn-group btn-group-sm">
+                                        <button wire:click="toggleSpamFlag({{ $submission->id }})" 
+                                                class="btn btn-sm btn-outline-warning"
+                                                title="{{ $submission->is_spam ? 'Mark as legitimate' : 'Flag as spam' }}">
+                                            <i class="fas {{ $submission->is_spam ? 'fa-check' : 'fa-bug' }}"></i>
+                                        </button>
+                                        <button wire:click="deleteSubmission({{ $submission->id }})" 
+                                                class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('Delete this submission?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         @empty

@@ -14,6 +14,7 @@ class FormAnalytic extends Model
     protected $fillable = [
         'form_id',
         'session_id',
+        'ip_address',
         'event_type',
         'event_data',
         'occurred_at',

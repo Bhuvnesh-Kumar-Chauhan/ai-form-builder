@@ -3,7 +3,10 @@
 namespace App\Livewire\Forms;
 
 use App\Models\Form;
+use App\Models\FormAnalytic;
 use App\Models\FormSubmission;
+use App\Services\FormAnalyticsService;
+use App\Services\SpamProtectionService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
@@ -27,6 +30,14 @@ class FormView extends Component
 
     public $validationErrors = [];
 
+    public $analyticsSessionId = null;
+
+    public $trackAnalytics = false;
+
+    public $honeypot = '';
+
+    public $loadedAt = 0;
+
     protected $rules = [];
 
     public function mount(Form $form)
@@ -48,6 +59,22 @@ class FormView extends Component
 
         $this->totalSteps = $this->calculateSteps();
         $this->initializeSubmissionData();
+        $this->loadedAt = time();
+
+        // Analytics are only meaningful for real visitors, not owners/previewers.
+        $this->analyticsSessionId = (string) session()->getId();
+        $this->trackAnalytics = ! auth()->check()
+            || (auth()->id() !== $form->user_id
+                && ! auth()->user()->isSuperAdmin()
+                && ! auth()->user()->can('edit forms'));
+
+        if ($this->trackAnalytics) {
+            app(FormAnalyticsService::class)->recordView(
+                $this->form,
+                $this->analyticsSessionId,
+                request()->ip()
+            );
+        }
     }
 
     public function initializeSubmissionData()
@@ -105,6 +132,7 @@ class FormView extends Component
             if ($this->currentStep < $this->totalSteps - 1) {
                 $this->currentStep++;
                 $this->validationErrors = [];
+                $this->recordAnalyticsProgress();
             }
         }
     }
@@ -115,6 +143,30 @@ class FormView extends Component
             $this->currentStep--;
             $this->validationErrors = [];
         }
+    }
+
+    protected function recordAnalyticsProgress()
+    {
+        if (! $this->trackAnalytics) {
+            return;
+        }
+
+        $service = app(FormAnalyticsService::class);
+
+        if (! $this->hasStarted()) {
+            $service->recordStart($this->form, $this->analyticsSessionId, request()->ip());
+            $service->recordStep($this->form, $this->analyticsSessionId, 1, request()->ip());
+        }
+
+        $service->recordStep($this->form, $this->analyticsSessionId, $this->currentStep + 1, request()->ip());
+    }
+
+    protected function hasStarted(): bool
+    {
+        return FormAnalytic::where('form_id', $this->form->id)
+            ->where('session_id', $this->analyticsSessionId)
+            ->where('event_type', 'start')
+            ->exists();
     }
 
     public function validateStep()
@@ -203,6 +255,20 @@ class FormView extends Component
             return;
         }
 
+        $spam = app(SpamProtectionService::class);
+        $spam->registerAttempt(request()->ip());
+
+        $decision = $spam->decide(request()->ip(), [
+            'honeypot' => $this->honeypot,
+            'loaded_at' => $this->loadedAt,
+        ]);
+
+        if ($decision['blocked']) {
+            $this->dispatch('submissionRejected', reasons: $decision['reasons']);
+
+            return;
+        }
+
         // Handle file uploads
         foreach ($this->submissionData as $key => $value) {
             if ($value instanceof UploadedFile) {
@@ -221,7 +287,9 @@ class FormView extends Component
                 'referrer' => request()->header('referer'),
                 'user_agent' => request()->userAgent(),
                 'session_id' => session()->getId(),
+                'spam_reasons' => $decision['reasons'],
             ],
+            'is_spam' => $decision['flagged'],
             'submitted_at' => now(),
         ]);
 
@@ -230,7 +298,28 @@ class FormView extends Component
         $this->submitted = true;
         $this->submissionId = $submission->id;
 
+        $this->recordAnalyticsCompletion($submission->id);
+
         $this->dispatch('formSubmitted', submission: $submission);
+    }
+
+    protected function recordAnalyticsCompletion(int $submissionId)
+    {
+        if (! $this->trackAnalytics) {
+            return;
+        }
+
+        $service = app(FormAnalyticsService::class);
+
+        if (! $this->hasStarted()) {
+            $service->recordStart($this->form, $this->analyticsSessionId, request()->ip());
+        }
+
+        $service->recordStep($this->form, $this->analyticsSessionId, $this->currentStep + 1, request()->ip());
+        $service->recordComplete($this->form, $this->analyticsSessionId, [
+            'submission_id' => $submissionId,
+            'step' => $this->currentStep + 1,
+        ], request()->ip());
     }
 
     public function render()

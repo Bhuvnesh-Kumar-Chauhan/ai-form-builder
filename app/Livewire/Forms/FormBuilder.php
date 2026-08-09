@@ -8,6 +8,7 @@ use App\Models\FieldOption;
 use App\Models\Form;
 use App\Models\FormField;
 use App\Services\FormSchemaService;
+use App\Services\FormVersioningService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -500,6 +501,9 @@ class FormBuilder extends Component
                 }
             }
         }
+
+        // Record a version snapshot (skipped automatically when nothing changed).
+        app(FormVersioningService::class)->capture($model, auth()->id(), 'Saved from builder');
 
         session()->flash('message', 'Form saved successfully!');
 

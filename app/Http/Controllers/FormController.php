@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Mail\NewSubmissionNotification;
 use App\Models\Form;
 use App\Models\FormSubmission;
+use App\Services\FormAnalyticsService;
+use App\Services\SpamProtectionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -102,6 +104,21 @@ class FormController extends Controller
             ], 422);
         }
 
+        $spam = app(SpamProtectionService::class);
+        $spam->registerAttempt($request->ip());
+
+        $decision = $spam->decide($request->ip(), [
+            'honeypot' => $request->input(config('spam.honeypot_field')),
+            'loaded_at' => $request->input('started_at'),
+        ]);
+
+        if ($decision['blocked']) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Submission rejected.',
+            ], 422);
+        }
+
         // Save submission
         $submission = FormSubmission::create([
             'form_id' => $form->id,
@@ -112,7 +129,9 @@ class FormController extends Controller
                 'referrer' => $request->header('referer'),
                 'user_agent' => $request->userAgent(),
                 'session_id' => session()->getId(),
+                'spam_reasons' => $decision['reasons'],
             ],
+            'is_spam' => $decision['flagged'],
             'submitted_at' => now(),
         ]);
 
@@ -178,5 +197,33 @@ class FormController extends Controller
         $submission->delete();
 
         return redirect()->back()->with('message', 'Submission deleted successfully.');
+    }
+
+    /**
+     * Lightweight analytics beacon used by the public fill page to report a
+     * visitor abandoning the form when they navigate away mid-way.
+     */
+    public function analyticsBeacon(Request $request, Form $form)
+    {
+        if (! $form->is_published) {
+            return response()->noContent();
+        }
+
+        $event = (string) $request->input('event', 'abandon');
+
+        if ($event === 'abandon') {
+            $sessionId = (string) $request->input(
+                'session_id',
+                session()->getId()
+            );
+
+            app(FormAnalyticsService::class)->recordAbandon(
+                $form,
+                $sessionId,
+                $request->ip()
+            );
+        }
+
+        return response()->noContent();
     }
 }

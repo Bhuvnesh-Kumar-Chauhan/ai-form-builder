@@ -4,10 +4,12 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FormController;
 use App\Http\Controllers\ProfileController;
 use App\Livewire\Admin\PermissionManager;
+use App\Livewire\Forms\FormAnalytics;
 use App\Livewire\Forms\FormBuilder;
 use App\Livewire\Forms\FormImporter;
 use App\Livewire\Forms\FormList;
 use App\Livewire\Forms\FormSubmissions;
+use App\Livewire\Forms\FormVersions;
 use App\Livewire\Forms\FormView;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +29,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 // Public form routes (accessible without authentication)
 Route::get('/f/{form}', FormView::class)->name('forms.show');
 Route::post('/f/{form}/submit', [FormController::class, 'submit'])->name('forms.submit');
+Route::post('/f/{form}/analytics/beacon', [FormController::class, 'analyticsBeacon'])->name('forms.analytics.beacon');
 
 // Protected routes - require authentication
 Route::middleware(['auth'])->group(function () {
@@ -43,6 +46,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::middleware(['permission:edit forms'])->group(function () {
         Route::get('/forms/{form}/edit', FormBuilder::class)->name('forms.edit');
+        Route::get('/forms/{form}/versions', FormVersions::class)->name('forms.versions');
     });
 
     Route::middleware(['permission:delete forms'])->group(function () {
@@ -60,6 +64,7 @@ Route::middleware(['auth'])->group(function () {
     // Submission routes with permissions
     Route::middleware(['permission:view submissions'])->group(function () {
         Route::get('/forms/{form}/submissions', FormSubmissions::class)->name('forms.submissions');
+        Route::get('/forms/{form}/analytics', FormAnalytics::class)->name('forms.analytics');
     });
 
     Route::middleware(['permission:export submissions'])->group(function () {

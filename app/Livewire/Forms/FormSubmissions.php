@@ -27,11 +27,14 @@ class FormSubmissions extends Component
 
     public $selectAll = false;
 
+    public $spamFilter = 'all';
+
     protected $queryString = [
         'search' => ['except' => ''],
         'perPage' => ['except' => 10],
         'sortField' => ['except' => 'submitted_at'],
         'sortDirection' => ['except' => 'desc'],
+        'spamFilter' => ['except' => 'all'],
     ];
 
     public function mount(Form $form)
@@ -48,6 +51,11 @@ class FormSubmissions extends Component
     }
 
     public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSpamFilter()
     {
         $this->resetPage();
     }
@@ -78,6 +86,8 @@ class FormSubmissions extends Component
     public function getSubmissions()
     {
         return FormSubmission::where('form_id', $this->form->id)
+            ->when($this->spamFilter === 'legit', fn ($q) => $q->where('is_spam', false))
+            ->when($this->spamFilter === 'spam', fn ($q) => $q->where('is_spam', true))
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('data', 'LIKE', '%'.$this->search.'%')
@@ -95,6 +105,17 @@ class FormSubmissions extends Component
             $submission->delete();
             $this->dispatch('submissionDeleted');
             session()->flash('message', 'Submission deleted successfully.');
+        }
+    }
+
+    public function toggleSpamFlag($id)
+    {
+        $submission = FormSubmission::find($id);
+        if ($submission && $submission->form_id === $this->form->id) {
+            $submission->is_spam = ! $submission->is_spam;
+            $submission->save();
+            $this->dispatch('submissionFlagUpdated');
+            session()->flash('message', $submission->is_spam ? 'Submission flagged as spam.' : 'Submission marked as legitimate.');
         }
     }
 

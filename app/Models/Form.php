@@ -69,6 +69,11 @@ class Form extends Model
         return $this->hasMany(FormAnalytic::class);
     }
 
+    public function versions()
+    {
+        return $this->hasMany(FormVersion::class)->orderBy('version');
+    }
+
     public function getRouteKeyName()
     {
         return 'slug';
